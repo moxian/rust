@@ -46,11 +46,9 @@ mod printing;
 #[path = "backtrace_gnu.rs"]
 pub mod gnu;
 
-pub use self::printing::{resolve_symname, foreach_symbol_fileline};
+pub use self::printing::{foreach_symbol_fileline, resolve_symname};
 
-pub fn unwind_backtrace(frames: &mut [Frame])
-    -> io::Result<(usize, BacktraceContext)>
-{
+pub fn unwind_backtrace(frames: &mut [Frame]) -> io::Result<(usize, BacktraceContext)> {
     let dbghelp = DynamicLibrary::open("dbghelp.dll")?;
 
     // Fetch the symbols necessary from dbghelp.dll
@@ -76,19 +74,25 @@ pub fn unwind_backtrace(frames: &mut [Frame])
     // Initialize this process's symbols
     let ret = unsafe { SymInitialize(process, ptr::null_mut(), c::TRUE) };
     if ret != c::TRUE {
-        return Ok((0, backtrace_context))
+        return Ok((0, backtrace_context));
     }
 
     // And now that we're done with all the setup, do the stack walking!
     let mut i = 0;
     unsafe {
-        while i < frames.len() &&
-              StackWalkEx(image, process, thread, &mut frame, &mut context,
-                          ptr::null_mut(),
-                          ptr::null_mut(),
-                          ptr::null_mut(),
-                          ptr::null_mut(),
-                          0) == c::TRUE
+        while i < frames.len()
+            && StackWalkEx(
+                image,
+                process,
+                thread,
+                &mut frame,
+                &mut context,
+                ptr::null_mut(),
+                ptr::null_mut(),
+                ptr::null_mut(),
+                ptr::null_mut(),
+                0,
+            ) == c::TRUE
         {
             let addr = (frame.AddrPC.Offset - 1) as *const u8;
 
@@ -104,21 +108,24 @@ pub fn unwind_backtrace(frames: &mut [Frame])
     Ok((i, backtrace_context))
 }
 
-type SymInitializeFn =
-    unsafe extern "system" fn(c::HANDLE, *mut c_void,
-                              c::BOOL) -> c::BOOL;
-type SymCleanupFn =
-    unsafe extern "system" fn(c::HANDLE) -> c::BOOL;
+type SymInitializeFn = unsafe extern "system" fn(c::HANDLE, *mut c_void, c::BOOL) -> c::BOOL;
+type SymCleanupFn = unsafe extern "system" fn(c::HANDLE) -> c::BOOL;
 
-type StackWalkExFn =
-    unsafe extern "system" fn(c::DWORD, c::HANDLE, c::HANDLE,
-                              *mut c::STACKFRAME_EX, *mut c::CONTEXT,
-                              *mut c_void, *mut c_void,
-                              *mut c_void, *mut c_void, c::DWORD) -> c::BOOL;
+type StackWalkExFn = unsafe extern "system" fn(
+    c::DWORD,
+    c::HANDLE,
+    c::HANDLE,
+    *mut c::STACKFRAME_EX,
+    *mut c::CONTEXT,
+    *mut c_void,
+    *mut c_void,
+    *mut c_void,
+    *mut c_void,
+    c::DWORD,
+) -> c::BOOL;
 
 #[cfg(target_arch = "x86")]
-fn init_frame(frame: &mut c::STACKFRAME_EX,
-              ctx: &c::CONTEXT) -> c::DWORD {
+fn init_frame(frame: &mut c::STACKFRAME_EX, ctx: &c::CONTEXT) -> c::DWORD {
     frame.AddrPC.Offset = ctx.Eip as u64;
     frame.AddrPC.Mode = c::ADDRESS_MODE::AddrModeFlat;
     frame.AddrStack.Offset = ctx.Esp as u64;
@@ -129,8 +136,7 @@ fn init_frame(frame: &mut c::STACKFRAME_EX,
 }
 
 #[cfg(target_arch = "x86_64")]
-fn init_frame(frame: &mut c::STACKFRAME_EX,
-              ctx: &c::CONTEXT) -> c::DWORD {
+fn init_frame(frame: &mut c::STACKFRAME_EX, ctx: &c::CONTEXT) -> c::DWORD {
     frame.AddrPC.Offset = ctx.Rip as u64;
     frame.AddrPC.Mode = c::ADDRESS_MODE::AddrModeFlat;
     frame.AddrStack.Offset = ctx.Rsp as u64;
@@ -150,6 +156,8 @@ pub struct BacktraceContext {
 
 impl Drop for BacktraceContext {
     fn drop(&mut self) {
-        unsafe { (self.SymCleanup)(self.handle); }
+        unsafe {
+            (self.SymCleanup)(self.handle);
+        }
     }
 }

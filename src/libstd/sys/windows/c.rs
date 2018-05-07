@@ -14,14 +14,14 @@
 #![cfg_attr(test, allow(dead_code))]
 #![unstable(issue = "0", feature = "windows_c")]
 
-use os::raw::{c_int, c_uint, c_ulong, c_long, c_longlong, c_ushort, c_char};
+use libc::{c_void, size_t, wchar_t};
 #[cfg(target_arch = "x86_64")]
 use os::raw::c_ulonglong;
-use libc::{wchar_t, size_t, c_void};
+use os::raw::{c_char, c_int, c_long, c_longlong, c_uint, c_ulong, c_ushort};
 use ptr;
 
-pub use self::FILE_INFO_BY_HANDLE_CLASS::*;
 pub use self::EXCEPTION_DISPOSITION::*;
+pub use self::FILE_INFO_BY_HANDLE_CLASS::*;
 
 pub type DWORD = c_ulong;
 pub type HANDLE = LPVOID;
@@ -102,11 +102,9 @@ pub const SYNCHRONIZE: DWORD = 0x00100000;
 pub const GENERIC_READ: DWORD = 0x80000000;
 pub const GENERIC_WRITE: DWORD = 0x40000000;
 pub const STANDARD_RIGHTS_WRITE: DWORD = READ_CONTROL;
-pub const FILE_GENERIC_WRITE: DWORD = STANDARD_RIGHTS_WRITE | FILE_WRITE_DATA |
-                                      FILE_WRITE_ATTRIBUTES |
-                                      FILE_WRITE_EA |
-                                      FILE_APPEND_DATA |
-                                      SYNCHRONIZE;
+pub const FILE_GENERIC_WRITE: DWORD = STANDARD_RIGHTS_WRITE | FILE_WRITE_DATA
+    | FILE_WRITE_ATTRIBUTES | FILE_WRITE_EA | FILE_APPEND_DATA
+    | SYNCHRONIZE;
 
 pub const FILE_FLAG_OPEN_REPARSE_POINT: DWORD = 0x00200000;
 pub const FILE_FLAG_BACKUP_SEMANTICS: DWORD = 0x02000000;
@@ -129,7 +127,9 @@ pub struct WIN32_FIND_DATAW {
     pub cAlternateFileName: [wchar_t; 14],
 }
 impl Clone for WIN32_FIND_DATAW {
-    fn clone(&self) -> Self { *self }
+    fn clone(&self) -> Self {
+        *self
+    }
 }
 
 pub const WSA_FLAG_OVERLAPPED: DWORD = 0x01;
@@ -213,7 +213,9 @@ pub const DUPLICATE_SAME_ACCESS: DWORD = 0x00000002;
 pub const CONDITION_VARIABLE_INIT: CONDITION_VARIABLE = CONDITION_VARIABLE {
     ptr: ptr::null_mut(),
 };
-pub const SRWLOCK_INIT: SRWLOCK = SRWLOCK { ptr: ptr::null_mut() };
+pub const SRWLOCK_INIT: SRWLOCK = SRWLOCK {
+    ptr: ptr::null_mut(),
+};
 
 pub const DETACHED_PROCESS: DWORD = 0x00000008;
 pub const CREATE_NEW_PROCESS_GROUP: DWORD = 0x00000200;
@@ -371,28 +373,28 @@ pub struct BY_HANDLE_FILE_INFORMATION {
 #[repr(C)]
 #[allow(dead_code)] // we only use some variants
 pub enum FILE_INFO_BY_HANDLE_CLASS {
-    FileBasicInfo                   = 0,
-    FileStandardInfo                = 1,
-    FileNameInfo                    = 2,
-    FileRenameInfo                  = 3,
-    FileDispositionInfo             = 4,
-    FileAllocationInfo              = 5,
-    FileEndOfFileInfo               = 6,
-    FileStreamInfo                  = 7,
-    FileCompressionInfo             = 8,
-    FileAttributeTagInfo            = 9,
-    FileIdBothDirectoryInfo         = 10, // 0xA
-    FileIdBothDirectoryRestartInfo  = 11, // 0xB
-    FileIoPriorityHintInfo          = 12, // 0xC
-    FileRemoteProtocolInfo          = 13, // 0xD
-    FileFullDirectoryInfo           = 14, // 0xE
-    FileFullDirectoryRestartInfo    = 15, // 0xF
-    FileStorageInfo                 = 16, // 0x10
-    FileAlignmentInfo               = 17, // 0x11
-    FileIdInfo                      = 18, // 0x12
-    FileIdExtdDirectoryInfo         = 19, // 0x13
-    FileIdExtdDirectoryRestartInfo  = 20, // 0x14
-    MaximumFileInfoByHandlesClass
+    FileBasicInfo = 0,
+    FileStandardInfo = 1,
+    FileNameInfo = 2,
+    FileRenameInfo = 3,
+    FileDispositionInfo = 4,
+    FileAllocationInfo = 5,
+    FileEndOfFileInfo = 6,
+    FileStreamInfo = 7,
+    FileCompressionInfo = 8,
+    FileAttributeTagInfo = 9,
+    FileIdBothDirectoryInfo = 10,        // 0xA
+    FileIdBothDirectoryRestartInfo = 11, // 0xB
+    FileIoPriorityHintInfo = 12,         // 0xC
+    FileRemoteProtocolInfo = 13,         // 0xD
+    FileFullDirectoryInfo = 14,          // 0xE
+    FileFullDirectoryRestartInfo = 15,   // 0xF
+    FileStorageInfo = 16,                // 0x10
+    FileAlignmentInfo = 17,              // 0x11
+    FileIdInfo = 18,                     // 0x12
+    FileIdExtdDirectoryInfo = 19,        // 0x13
+    FileIdExtdDirectoryRestartInfo = 20, // 0x14
+    MaximumFileInfoByHandlesClass,
 }
 
 #[repr(C)]
@@ -436,22 +438,28 @@ pub struct MOUNT_POINT_REPARSE_BUFFER {
     pub PathBuffer: WCHAR,
 }
 
-pub type LPPROGRESS_ROUTINE = ::option::Option<unsafe extern "system" fn(
-    TotalFileSize: LARGE_INTEGER,
-    TotalBytesTransferred: LARGE_INTEGER,
-    StreamSize: LARGE_INTEGER,
-    StreamBytesTransferred: LARGE_INTEGER,
-    dwStreamNumber: DWORD,
-    dwCallbackReason: DWORD,
-    hSourceFile: HANDLE,
-    hDestinationFile: HANDLE,
-    lpData: LPVOID,
-) -> DWORD>;
+pub type LPPROGRESS_ROUTINE = ::option::Option<
+    unsafe extern "system" fn(
+        TotalFileSize: LARGE_INTEGER,
+        TotalBytesTransferred: LARGE_INTEGER,
+        StreamSize: LARGE_INTEGER,
+        StreamBytesTransferred: LARGE_INTEGER,
+        dwStreamNumber: DWORD,
+        dwCallbackReason: DWORD,
+        hSourceFile: HANDLE,
+        hDestinationFile: HANDLE,
+        lpData: LPVOID,
+    ) -> DWORD,
+>;
 
 #[repr(C)]
-pub struct CONDITION_VARIABLE { pub ptr: LPVOID }
+pub struct CONDITION_VARIABLE {
+    pub ptr: LPVOID,
+}
 #[repr(C)]
-pub struct SRWLOCK { pub ptr: LPVOID }
+pub struct SRWLOCK {
+    pub ptr: LPVOID,
+}
 #[repr(C)]
 pub struct CRITICAL_SECTION {
     CriticalSectionDebug: LPVOID,
@@ -459,7 +467,7 @@ pub struct CRITICAL_SECTION {
     RecursionCount: LONG,
     OwningThread: HANDLE,
     LockSemaphore: HANDLE,
-    SpinCount: ULONG_PTR
+    SpinCount: ULONG_PTR,
 }
 
 #[repr(C)]
@@ -480,7 +488,7 @@ pub struct EXCEPTION_RECORD {
     pub ExceptionRecord: *mut EXCEPTION_RECORD,
     pub ExceptionAddress: LPVOID,
     pub NumberParameters: DWORD,
-    pub ExceptionInformation: [LPVOID; EXCEPTION_MAXIMUM_PARAMETERS]
+    pub ExceptionInformation: [LPVOID; EXCEPTION_MAXIMUM_PARAMETERS],
 }
 
 #[repr(C)]
@@ -489,8 +497,8 @@ pub struct EXCEPTION_POINTERS {
     pub ContextRecord: *mut CONTEXT,
 }
 
-pub type PVECTORED_EXCEPTION_HANDLER = extern "system"
-        fn(ExceptionInfo: *mut EXCEPTION_POINTERS) -> LONG;
+pub type PVECTORED_EXCEPTION_HANDLER =
+    extern "system" fn(ExceptionInfo: *mut EXCEPTION_POINTERS) -> LONG;
 
 #[repr(C)]
 pub struct GUID {
@@ -732,8 +740,8 @@ pub struct CONTEXT {
     pub Rbp: DWORDLONG,
     pub Rsi: DWORDLONG,
     pub Rdi: DWORDLONG,
-    pub R8:  DWORDLONG,
-    pub R9:  DWORDLONG,
+    pub R8: DWORDLONG,
+    pub R9: DWORDLONG,
     pub R10: DWORDLONG,
     pub R11: DWORDLONG,
     pub R12: DWORDLONG,
@@ -758,14 +766,14 @@ pub struct CONTEXT {
 #[cfg(target_arch = "x86_64")]
 #[repr(C, align(16))]
 pub struct M128A {
-    pub Low:  c_ulonglong,
-    pub High: c_longlong
+    pub Low: c_ulonglong,
+    pub High: c_longlong,
 }
 
 #[cfg(target_arch = "x86_64")]
 #[repr(C, align(16))]
 pub struct FLOATING_SAVE_AREA {
-    _Dummy: [u8; 512] // FIXME: Fill this out
+    _Dummy: [u8; 512], // FIXME: Fill this out
 }
 
 // FIXME(#43348): This structure is used for backtrace only, and a fake
@@ -834,7 +842,7 @@ pub enum EXCEPTION_DISPOSITION {
     ExceptionContinueExecution,
     ExceptionContinueSearch,
     ExceptionNestedException,
-    ExceptionCollidedUnwind
+    ExceptionCollidedUnwind,
 }
 
 #[repr(C)]
@@ -868,21 +876,23 @@ pub struct timeval {
 }
 
 extern "system" {
-    pub fn WSAStartup(wVersionRequested: WORD,
-                      lpWSAData: LPWSADATA) -> c_int;
+    pub fn WSAStartup(wVersionRequested: WORD, lpWSAData: LPWSADATA) -> c_int;
     pub fn WSACleanup() -> c_int;
     pub fn WSAGetLastError() -> c_int;
-    pub fn WSADuplicateSocketW(s: SOCKET,
-                               dwProcessId: DWORD,
-                               lpProtocolInfo: LPWSAPROTOCOL_INFO)
-                               -> c_int;
+    pub fn WSADuplicateSocketW(
+        s: SOCKET,
+        dwProcessId: DWORD,
+        lpProtocolInfo: LPWSAPROTOCOL_INFO,
+    ) -> c_int;
     pub fn GetCurrentProcessId() -> DWORD;
-    pub fn WSASocketW(af: c_int,
-                      kind: c_int,
-                      protocol: c_int,
-                      lpProtocolInfo: LPWSAPROTOCOL_INFO,
-                      g: GROUP,
-                      dwFlags: DWORD) -> SOCKET;
+    pub fn WSASocketW(
+        af: c_int,
+        kind: c_int,
+        protocol: c_int,
+        lpProtocolInfo: LPWSAPROTOCOL_INFO,
+        g: GROUP,
+        dwFlags: DWORD,
+    ) -> SOCKET;
     pub fn ioctlsocket(s: SOCKET, cmd: c_long, argp: *mut c_ulong) -> c_int;
     pub fn InitializeCriticalSection(CriticalSection: *mut CRITICAL_SECTION);
     pub fn EnterCriticalSection(CriticalSection: *mut CRITICAL_SECTION);
@@ -890,270 +900,282 @@ extern "system" {
     pub fn LeaveCriticalSection(CriticalSection: *mut CRITICAL_SECTION);
     pub fn DeleteCriticalSection(CriticalSection: *mut CRITICAL_SECTION);
 
-    pub fn ReadConsoleW(hConsoleInput: HANDLE,
-                        lpBuffer: LPVOID,
-                        nNumberOfCharsToRead: DWORD,
-                        lpNumberOfCharsRead: LPDWORD,
-                        pInputControl: PCONSOLE_READCONSOLE_CONTROL) -> BOOL;
+    pub fn ReadConsoleW(
+        hConsoleInput: HANDLE,
+        lpBuffer: LPVOID,
+        nNumberOfCharsToRead: DWORD,
+        lpNumberOfCharsRead: LPDWORD,
+        pInputControl: PCONSOLE_READCONSOLE_CONTROL,
+    ) -> BOOL;
 
-    pub fn WriteConsoleW(hConsoleOutput: HANDLE,
-                         lpBuffer: LPCVOID,
-                         nNumberOfCharsToWrite: DWORD,
-                         lpNumberOfCharsWritten: LPDWORD,
-                         lpReserved: LPVOID) -> BOOL;
+    pub fn WriteConsoleW(
+        hConsoleOutput: HANDLE,
+        lpBuffer: LPCVOID,
+        nNumberOfCharsToWrite: DWORD,
+        lpNumberOfCharsWritten: LPDWORD,
+        lpReserved: LPVOID,
+    ) -> BOOL;
 
-    pub fn GetConsoleMode(hConsoleHandle: HANDLE,
-                          lpMode: LPDWORD) -> BOOL;
+    pub fn GetConsoleMode(hConsoleHandle: HANDLE, lpMode: LPDWORD) -> BOOL;
     pub fn RemoveDirectoryW(lpPathName: LPCWSTR) -> BOOL;
-    pub fn SetFileAttributesW(lpFileName: LPCWSTR,
-                              dwFileAttributes: DWORD) -> BOOL;
-    pub fn GetFileInformationByHandle(hFile: HANDLE,
-                            lpFileInformation: LPBY_HANDLE_FILE_INFORMATION)
-                            -> BOOL;
+    pub fn SetFileAttributesW(lpFileName: LPCWSTR, dwFileAttributes: DWORD) -> BOOL;
+    pub fn GetFileInformationByHandle(
+        hFile: HANDLE,
+        lpFileInformation: LPBY_HANDLE_FILE_INFORMATION,
+    ) -> BOOL;
 
     pub fn SetLastError(dwErrCode: DWORD);
     pub fn GetCommandLineW() -> *mut LPCWSTR;
     pub fn LocalFree(ptr: *mut c_void);
-    pub fn CommandLineToArgvW(lpCmdLine: *mut LPCWSTR,
-                              pNumArgs: *mut c_int) -> *mut *mut u16;
-    pub fn GetTempPathW(nBufferLength: DWORD,
-                        lpBuffer: LPCWSTR) -> DWORD;
-    pub fn OpenProcessToken(ProcessHandle: HANDLE,
-                            DesiredAccess: DWORD,
-                            TokenHandle: *mut HANDLE) -> BOOL;
+    pub fn CommandLineToArgvW(lpCmdLine: *mut LPCWSTR, pNumArgs: *mut c_int) -> *mut *mut u16;
+    pub fn GetTempPathW(nBufferLength: DWORD, lpBuffer: LPCWSTR) -> DWORD;
+    pub fn OpenProcessToken(
+        ProcessHandle: HANDLE,
+        DesiredAccess: DWORD,
+        TokenHandle: *mut HANDLE,
+    ) -> BOOL;
     pub fn GetCurrentProcess() -> HANDLE;
     pub fn GetCurrentThread() -> HANDLE;
     pub fn GetStdHandle(which: DWORD) -> HANDLE;
     pub fn ExitProcess(uExitCode: c_uint) -> !;
-    pub fn DeviceIoControl(hDevice: HANDLE,
-                           dwIoControlCode: DWORD,
-                           lpInBuffer: LPVOID,
-                           nInBufferSize: DWORD,
-                           lpOutBuffer: LPVOID,
-                           nOutBufferSize: DWORD,
-                           lpBytesReturned: LPDWORD,
-                           lpOverlapped: LPOVERLAPPED) -> BOOL;
-    pub fn CreateThread(lpThreadAttributes: LPSECURITY_ATTRIBUTES,
-                        dwStackSize: SIZE_T,
-                        lpStartAddress: extern "system" fn(*mut c_void)
-                                                           -> DWORD,
-                        lpParameter: LPVOID,
-                        dwCreationFlags: DWORD,
-                        lpThreadId: LPDWORD) -> HANDLE;
-    pub fn WaitForSingleObject(hHandle: HANDLE,
-                               dwMilliseconds: DWORD) -> DWORD;
+    pub fn DeviceIoControl(
+        hDevice: HANDLE,
+        dwIoControlCode: DWORD,
+        lpInBuffer: LPVOID,
+        nInBufferSize: DWORD,
+        lpOutBuffer: LPVOID,
+        nOutBufferSize: DWORD,
+        lpBytesReturned: LPDWORD,
+        lpOverlapped: LPOVERLAPPED,
+    ) -> BOOL;
+    pub fn CreateThread(
+        lpThreadAttributes: LPSECURITY_ATTRIBUTES,
+        dwStackSize: SIZE_T,
+        lpStartAddress: extern "system" fn(*mut c_void) -> DWORD,
+        lpParameter: LPVOID,
+        dwCreationFlags: DWORD,
+        lpThreadId: LPDWORD,
+    ) -> HANDLE;
+    pub fn WaitForSingleObject(hHandle: HANDLE, dwMilliseconds: DWORD) -> DWORD;
     pub fn SwitchToThread() -> BOOL;
     pub fn Sleep(dwMilliseconds: DWORD);
     pub fn GetProcessId(handle: HANDLE) -> DWORD;
-    pub fn GetUserProfileDirectoryW(hToken: HANDLE,
-                                    lpProfileDir: LPWSTR,
-                                    lpcchSize: *mut DWORD) -> BOOL;
-    pub fn SetHandleInformation(hObject: HANDLE,
-                                dwMask: DWORD,
-                                dwFlags: DWORD) -> BOOL;
-    pub fn CopyFileExW(lpExistingFileName: LPCWSTR,
-                       lpNewFileName: LPCWSTR,
-                       lpProgressRoutine: LPPROGRESS_ROUTINE,
-                       lpData: LPVOID,
-                       pbCancel: LPBOOL,
-                       dwCopyFlags: DWORD) -> BOOL;
-    pub fn AddVectoredExceptionHandler(FirstHandler: ULONG,
-                                       VectoredHandler: PVECTORED_EXCEPTION_HANDLER)
-                                       -> LPVOID;
-    pub fn FormatMessageW(flags: DWORD,
-                          lpSrc: LPVOID,
-                          msgId: DWORD,
-                          langId: DWORD,
-                          buf: LPWSTR,
-                          nsize: DWORD,
-                          args: *const c_void)
-                          -> DWORD;
+    pub fn GetUserProfileDirectoryW(
+        hToken: HANDLE,
+        lpProfileDir: LPWSTR,
+        lpcchSize: *mut DWORD,
+    ) -> BOOL;
+    pub fn SetHandleInformation(hObject: HANDLE, dwMask: DWORD, dwFlags: DWORD) -> BOOL;
+    pub fn CopyFileExW(
+        lpExistingFileName: LPCWSTR,
+        lpNewFileName: LPCWSTR,
+        lpProgressRoutine: LPPROGRESS_ROUTINE,
+        lpData: LPVOID,
+        pbCancel: LPBOOL,
+        dwCopyFlags: DWORD,
+    ) -> BOOL;
+    pub fn AddVectoredExceptionHandler(
+        FirstHandler: ULONG,
+        VectoredHandler: PVECTORED_EXCEPTION_HANDLER,
+    ) -> LPVOID;
+    pub fn FormatMessageW(
+        flags: DWORD,
+        lpSrc: LPVOID,
+        msgId: DWORD,
+        langId: DWORD,
+        buf: LPWSTR,
+        nsize: DWORD,
+        args: *const c_void,
+    ) -> DWORD;
     pub fn TlsAlloc() -> DWORD;
     pub fn TlsGetValue(dwTlsIndex: DWORD) -> LPVOID;
     pub fn TlsSetValue(dwTlsIndex: DWORD, lpTlsvalue: LPVOID) -> BOOL;
     pub fn GetLastError() -> DWORD;
     pub fn QueryPerformanceFrequency(lpFrequency: *mut LARGE_INTEGER) -> BOOL;
-    pub fn QueryPerformanceCounter(lpPerformanceCount: *mut LARGE_INTEGER)
-                                   -> BOOL;
+    pub fn QueryPerformanceCounter(lpPerformanceCount: *mut LARGE_INTEGER) -> BOOL;
     pub fn GetExitCodeProcess(hProcess: HANDLE, lpExitCode: LPDWORD) -> BOOL;
     pub fn TerminateProcess(hProcess: HANDLE, uExitCode: UINT) -> BOOL;
-    pub fn CreateProcessW(lpApplicationName: LPCWSTR,
-                          lpCommandLine: LPWSTR,
-                          lpProcessAttributes: LPSECURITY_ATTRIBUTES,
-                          lpThreadAttributes: LPSECURITY_ATTRIBUTES,
-                          bInheritHandles: BOOL,
-                          dwCreationFlags: DWORD,
-                          lpEnvironment: LPVOID,
-                          lpCurrentDirectory: LPCWSTR,
-                          lpStartupInfo: LPSTARTUPINFO,
-                          lpProcessInformation: LPPROCESS_INFORMATION)
-                          -> BOOL;
+    pub fn CreateProcessW(
+        lpApplicationName: LPCWSTR,
+        lpCommandLine: LPWSTR,
+        lpProcessAttributes: LPSECURITY_ATTRIBUTES,
+        lpThreadAttributes: LPSECURITY_ATTRIBUTES,
+        bInheritHandles: BOOL,
+        dwCreationFlags: DWORD,
+        lpEnvironment: LPVOID,
+        lpCurrentDirectory: LPCWSTR,
+        lpStartupInfo: LPSTARTUPINFO,
+        lpProcessInformation: LPPROCESS_INFORMATION,
+    ) -> BOOL;
     pub fn GetEnvironmentVariableW(n: LPCWSTR, v: LPWSTR, nsize: DWORD) -> DWORD;
     pub fn SetEnvironmentVariableW(n: LPCWSTR, v: LPCWSTR) -> BOOL;
     pub fn GetEnvironmentStringsW() -> LPWCH;
     pub fn FreeEnvironmentStringsW(env_ptr: LPWCH) -> BOOL;
-    pub fn GetModuleFileNameW(hModule: HMODULE,
-                              lpFilename: LPWSTR,
-                              nSize: DWORD)
-                              -> DWORD;
-    pub fn CreateDirectoryW(lpPathName: LPCWSTR,
-                            lpSecurityAttributes: LPSECURITY_ATTRIBUTES)
-                            -> BOOL;
+    pub fn GetModuleFileNameW(hModule: HMODULE, lpFilename: LPWSTR, nSize: DWORD) -> DWORD;
+    pub fn CreateDirectoryW(
+        lpPathName: LPCWSTR,
+        lpSecurityAttributes: LPSECURITY_ATTRIBUTES,
+    ) -> BOOL;
     pub fn DeleteFileW(lpPathName: LPCWSTR) -> BOOL;
     pub fn GetCurrentDirectoryW(nBufferLength: DWORD, lpBuffer: LPWSTR) -> DWORD;
     pub fn SetCurrentDirectoryW(lpPathName: LPCWSTR) -> BOOL;
-    pub fn WideCharToMultiByte(CodePage: UINT,
-                               dwFlags: DWORD,
-                               lpWideCharStr: LPCWSTR,
-                               cchWideChar: c_int,
-                               lpMultiByteStr: LPSTR,
-                               cbMultiByte: c_int,
-                               lpDefaultChar: LPCSTR,
-                               lpUsedDefaultChar: LPBOOL) -> c_int;
+    pub fn WideCharToMultiByte(
+        CodePage: UINT,
+        dwFlags: DWORD,
+        lpWideCharStr: LPCWSTR,
+        cchWideChar: c_int,
+        lpMultiByteStr: LPSTR,
+        cbMultiByte: c_int,
+        lpDefaultChar: LPCSTR,
+        lpUsedDefaultChar: LPBOOL,
+    ) -> c_int;
 
     pub fn closesocket(socket: SOCKET) -> c_int;
-    pub fn recv(socket: SOCKET, buf: *mut c_void, len: c_int,
-                flags: c_int) -> c_int;
-    pub fn send(socket: SOCKET, buf: *const c_void, len: c_int,
-                flags: c_int) -> c_int;
-    pub fn recvfrom(socket: SOCKET,
-                    buf: *mut c_void,
-                    len: c_int,
-                    flags: c_int,
-                    addr: *mut SOCKADDR,
-                    addrlen: *mut c_int)
-                    -> c_int;
-    pub fn sendto(socket: SOCKET,
-                  buf: *const c_void,
-                  len: c_int,
-                  flags: c_int,
-                  addr: *const SOCKADDR,
-                  addrlen: c_int)
-                  -> c_int;
+    pub fn recv(socket: SOCKET, buf: *mut c_void, len: c_int, flags: c_int) -> c_int;
+    pub fn send(socket: SOCKET, buf: *const c_void, len: c_int, flags: c_int) -> c_int;
+    pub fn recvfrom(
+        socket: SOCKET,
+        buf: *mut c_void,
+        len: c_int,
+        flags: c_int,
+        addr: *mut SOCKADDR,
+        addrlen: *mut c_int,
+    ) -> c_int;
+    pub fn sendto(
+        socket: SOCKET,
+        buf: *const c_void,
+        len: c_int,
+        flags: c_int,
+        addr: *const SOCKADDR,
+        addrlen: c_int,
+    ) -> c_int;
     pub fn shutdown(socket: SOCKET, how: c_int) -> c_int;
-    pub fn accept(socket: SOCKET,
-                  address: *mut SOCKADDR,
-                  address_len: *mut c_int)
-                  -> SOCKET;
-    pub fn DuplicateHandle(hSourceProcessHandle: HANDLE,
-                           hSourceHandle: HANDLE,
-                           hTargetProcessHandle: HANDLE,
-                           lpTargetHandle: LPHANDLE,
-                           dwDesiredAccess: DWORD,
-                           bInheritHandle: BOOL,
-                           dwOptions: DWORD)
-                           -> BOOL;
-    pub fn ReadFile(hFile: HANDLE,
-                    lpBuffer: LPVOID,
-                    nNumberOfBytesToRead: DWORD,
-                    lpNumberOfBytesRead: LPDWORD,
-                    lpOverlapped: LPOVERLAPPED)
-                    -> BOOL;
-    pub fn WriteFile(hFile: HANDLE,
-                     lpBuffer: LPVOID,
-                     nNumberOfBytesToWrite: DWORD,
-                     lpNumberOfBytesWritten: LPDWORD,
-                     lpOverlapped: LPOVERLAPPED)
-                     -> BOOL;
+    pub fn accept(socket: SOCKET, address: *mut SOCKADDR, address_len: *mut c_int) -> SOCKET;
+    pub fn DuplicateHandle(
+        hSourceProcessHandle: HANDLE,
+        hSourceHandle: HANDLE,
+        hTargetProcessHandle: HANDLE,
+        lpTargetHandle: LPHANDLE,
+        dwDesiredAccess: DWORD,
+        bInheritHandle: BOOL,
+        dwOptions: DWORD,
+    ) -> BOOL;
+    pub fn ReadFile(
+        hFile: HANDLE,
+        lpBuffer: LPVOID,
+        nNumberOfBytesToRead: DWORD,
+        lpNumberOfBytesRead: LPDWORD,
+        lpOverlapped: LPOVERLAPPED,
+    ) -> BOOL;
+    pub fn WriteFile(
+        hFile: HANDLE,
+        lpBuffer: LPVOID,
+        nNumberOfBytesToWrite: DWORD,
+        lpNumberOfBytesWritten: LPDWORD,
+        lpOverlapped: LPOVERLAPPED,
+    ) -> BOOL;
     pub fn CloseHandle(hObject: HANDLE) -> BOOL;
-    pub fn CreateHardLinkW(lpSymlinkFileName: LPCWSTR,
-                           lpTargetFileName: LPCWSTR,
-                           lpSecurityAttributes: LPSECURITY_ATTRIBUTES)
-                           -> BOOL;
-    pub fn MoveFileExW(lpExistingFileName: LPCWSTR,
-                       lpNewFileName: LPCWSTR,
-                       dwFlags: DWORD)
-                       -> BOOL;
-    pub fn SetFilePointerEx(hFile: HANDLE,
-                            liDistanceToMove: LARGE_INTEGER,
-                            lpNewFilePointer: PLARGE_INTEGER,
-                            dwMoveMethod: DWORD)
-                            -> BOOL;
+    pub fn CreateHardLinkW(
+        lpSymlinkFileName: LPCWSTR,
+        lpTargetFileName: LPCWSTR,
+        lpSecurityAttributes: LPSECURITY_ATTRIBUTES,
+    ) -> BOOL;
+    pub fn MoveFileExW(lpExistingFileName: LPCWSTR, lpNewFileName: LPCWSTR, dwFlags: DWORD)
+        -> BOOL;
+    pub fn SetFilePointerEx(
+        hFile: HANDLE,
+        liDistanceToMove: LARGE_INTEGER,
+        lpNewFilePointer: PLARGE_INTEGER,
+        dwMoveMethod: DWORD,
+    ) -> BOOL;
     pub fn FlushFileBuffers(hFile: HANDLE) -> BOOL;
-    pub fn CreateFileW(lpFileName: LPCWSTR,
-                       dwDesiredAccess: DWORD,
-                       dwShareMode: DWORD,
-                       lpSecurityAttributes: LPSECURITY_ATTRIBUTES,
-                       dwCreationDisposition: DWORD,
-                       dwFlagsAndAttributes: DWORD,
-                       hTemplateFile: HANDLE)
-                       -> HANDLE;
+    pub fn CreateFileW(
+        lpFileName: LPCWSTR,
+        dwDesiredAccess: DWORD,
+        dwShareMode: DWORD,
+        lpSecurityAttributes: LPSECURITY_ATTRIBUTES,
+        dwCreationDisposition: DWORD,
+        dwFlagsAndAttributes: DWORD,
+        hTemplateFile: HANDLE,
+    ) -> HANDLE;
 
-    pub fn FindFirstFileW(fileName: LPCWSTR,
-                          findFileData: LPWIN32_FIND_DATAW)
-                          -> HANDLE;
-    pub fn FindNextFileW(findFile: HANDLE, findFileData: LPWIN32_FIND_DATAW)
-                         -> BOOL;
+    pub fn FindFirstFileW(fileName: LPCWSTR, findFileData: LPWIN32_FIND_DATAW) -> HANDLE;
+    pub fn FindNextFileW(findFile: HANDLE, findFileData: LPWIN32_FIND_DATAW) -> BOOL;
     pub fn FindClose(findFile: HANDLE) -> BOOL;
     #[cfg(feature = "backtrace")]
     pub fn RtlCaptureContext(ctx: *mut CONTEXT);
-    pub fn getsockopt(s: SOCKET,
-                      level: c_int,
-                      optname: c_int,
-                      optval: *mut c_char,
-                      optlen: *mut c_int)
-                      -> c_int;
-    pub fn setsockopt(s: SOCKET,
-                      level: c_int,
-                      optname: c_int,
-                      optval: *const c_void,
-                      optlen: c_int)
-                      -> c_int;
-    pub fn getsockname(socket: SOCKET,
-                       address: *mut SOCKADDR,
-                       address_len: *mut c_int)
-                       -> c_int;
-    pub fn getpeername(socket: SOCKET,
-                       address: *mut SOCKADDR,
-                       address_len: *mut c_int)
-                       -> c_int;
-    pub fn bind(socket: SOCKET, address: *const SOCKADDR,
-                address_len: socklen_t) -> c_int;
+    pub fn getsockopt(
+        s: SOCKET,
+        level: c_int,
+        optname: c_int,
+        optval: *mut c_char,
+        optlen: *mut c_int,
+    ) -> c_int;
+    pub fn setsockopt(
+        s: SOCKET,
+        level: c_int,
+        optname: c_int,
+        optval: *const c_void,
+        optlen: c_int,
+    ) -> c_int;
+    pub fn getsockname(socket: SOCKET, address: *mut SOCKADDR, address_len: *mut c_int) -> c_int;
+    pub fn getpeername(socket: SOCKET, address: *mut SOCKADDR, address_len: *mut c_int) -> c_int;
+    pub fn bind(socket: SOCKET, address: *const SOCKADDR, address_len: socklen_t) -> c_int;
     pub fn listen(socket: SOCKET, backlog: c_int) -> c_int;
-    pub fn connect(socket: SOCKET, address: *const SOCKADDR, len: c_int)
-                   -> c_int;
-    pub fn getaddrinfo(node: *const c_char, service: *const c_char,
-                       hints: *const ADDRINFOA,
-                       res: *mut *mut ADDRINFOA) -> c_int;
+    pub fn connect(socket: SOCKET, address: *const SOCKADDR, len: c_int) -> c_int;
+    pub fn getaddrinfo(
+        node: *const c_char,
+        service: *const c_char,
+        hints: *const ADDRINFOA,
+        res: *mut *mut ADDRINFOA,
+    ) -> c_int;
     pub fn freeaddrinfo(res: *mut ADDRINFOA);
 
     #[cfg(feature = "backtrace")]
     pub fn LoadLibraryW(name: LPCWSTR) -> HMODULE;
     #[cfg(feature = "backtrace")]
     pub fn FreeLibrary(handle: HMODULE) -> BOOL;
-    pub fn GetProcAddress(handle: HMODULE,
-                          name: LPCSTR) -> *mut c_void;
+    pub fn GetProcAddress(handle: HMODULE, name: LPCSTR) -> *mut c_void;
     pub fn GetModuleHandleW(lpModuleName: LPCWSTR) -> HMODULE;
 
     pub fn GetSystemTimeAsFileTime(lpSystemTimeAsFileTime: LPFILETIME);
 
-    pub fn CreateEventW(lpEventAttributes: LPSECURITY_ATTRIBUTES,
-                        bManualReset: BOOL,
-                        bInitialState: BOOL,
-                        lpName: LPCWSTR) -> HANDLE;
-    pub fn WaitForMultipleObjects(nCount: DWORD,
-                                  lpHandles: *const HANDLE,
-                                  bWaitAll: BOOL,
-                                  dwMilliseconds: DWORD) -> DWORD;
-    pub fn CreateNamedPipeW(lpName: LPCWSTR,
-                            dwOpenMode: DWORD,
-                            dwPipeMode: DWORD,
-                            nMaxInstances: DWORD,
-                            nOutBufferSize: DWORD,
-                            nInBufferSize: DWORD,
-                            nDefaultTimeOut: DWORD,
-                            lpSecurityAttributes: LPSECURITY_ATTRIBUTES)
-                            -> HANDLE;
+    pub fn CreateEventW(
+        lpEventAttributes: LPSECURITY_ATTRIBUTES,
+        bManualReset: BOOL,
+        bInitialState: BOOL,
+        lpName: LPCWSTR,
+    ) -> HANDLE;
+    pub fn WaitForMultipleObjects(
+        nCount: DWORD,
+        lpHandles: *const HANDLE,
+        bWaitAll: BOOL,
+        dwMilliseconds: DWORD,
+    ) -> DWORD;
+    pub fn CreateNamedPipeW(
+        lpName: LPCWSTR,
+        dwOpenMode: DWORD,
+        dwPipeMode: DWORD,
+        nMaxInstances: DWORD,
+        nOutBufferSize: DWORD,
+        nInBufferSize: DWORD,
+        nDefaultTimeOut: DWORD,
+        lpSecurityAttributes: LPSECURITY_ATTRIBUTES,
+    ) -> HANDLE;
     pub fn CancelIo(handle: HANDLE) -> BOOL;
-    pub fn GetOverlappedResult(hFile: HANDLE,
-                               lpOverlapped: LPOVERLAPPED,
-                               lpNumberOfBytesTransferred: LPDWORD,
-                               bWait: BOOL) -> BOOL;
-    pub fn select(nfds: c_int,
-                  readfds: *mut fd_set,
-                  writefds: *mut fd_set,
-                  exceptfds: *mut fd_set,
-                  timeout: *const timeval) -> c_int;
+    pub fn GetOverlappedResult(
+        hFile: HANDLE,
+        lpOverlapped: LPOVERLAPPED,
+        lpNumberOfBytesTransferred: LPDWORD,
+        bWait: BOOL,
+    ) -> BOOL;
+    pub fn select(
+        nfds: c_int,
+        readfds: *mut fd_set,
+        writefds: *mut fd_set,
+        exceptfds: *mut fd_set,
+        timeout: *const timeval,
+    ) -> c_int;
 
     #[link_name = "SystemFunction036"]
     pub fn RtlGenRandom(RandomBuffer: *mut u8, RandomBufferLength: ULONG) -> BOOLEAN;
@@ -1233,9 +1255,11 @@ mod gnu {
     pub const WC_NO_BEST_FIT_CHARS: DWORD = 0x00000400;
 
     extern "system" {
-        pub fn OpenProcess(dwDesiredAccess: DWORD,
-                           bInheritHandle: BOOL,
-                           dwProcessId: DWORD) -> HANDLE;
+        pub fn OpenProcess(
+            dwDesiredAccess: DWORD,
+            bInheritHandle: BOOL,
+            dwProcessId: DWORD,
+        ) -> HANDLE;
     }
 
     compat_fn! {
