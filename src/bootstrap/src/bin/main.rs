@@ -152,7 +152,6 @@ fn check_version(config: &Config) -> Option<String> {
 
     let latest_change_id = CONFIG_CHANGE_HISTORY.last().unwrap().change_id;
     let warned_id_path = config.out.join("bootstrap").join(".last-warned-change-id");
-
     if let Some(mut id) = config.change_id {
         if id == latest_change_id {
             return None;
@@ -187,7 +186,8 @@ fn check_version(config: &Config) -> Option<String> {
             "update `config.toml` to use `change-id = {latest_change_id}` instead"
         ));
 
-        if io::stdout().is_terminal() && !config.dry_run() {
+        if io::stdout().is_terminal() {
+            t!(std::fs::create_dir_all(warned_id_path.parent().unwrap()));
             t!(fs::write(warned_id_path, latest_change_id.to_string()));
         }
     } else {
